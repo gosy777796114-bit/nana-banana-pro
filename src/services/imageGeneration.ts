@@ -238,6 +238,31 @@ export interface ContentPart {
   inline_data?: { mime_type: string; data: string };
 }
 
+function extractImageFromParts(parts: Array<Record<string, unknown>>): { mimeType: string; data: string } | null {
+  for (const part of parts) {
+    // Case A: inlineData (camelCase) — standard Gemini SDK
+    if ((part.inlineData as Record<string, unknown>)?.data) {
+      const d = part.inlineData as Record<string, string>;
+      return { mimeType: d.mimeType || 'image/png', data: String(d.data) };
+    }
+    // Case B: inline_data (snake_case) — raw API response
+    if ((part.inline_data as Record<string, unknown>)?.data) {
+      const d = part.inline_data as Record<string, string>;
+      return { mimeType: d.mime_type || 'image/png', data: String(d.data) };
+    }
+    // Case C: data is a direct property with mime_type nearby
+    if (part.data && part.mime_type) {
+      return { mimeType: String(part.mime_type), data: String(part.data) };
+    }
+    // Case D: image property
+    if (part.image) {
+      const img = part.image as Record<string, string>;
+      return { mimeType: img.mimeType || img.mime_type || 'image/png', data: String(img.data || img.base64) };
+    }
+  }
+  return null;
+}
+
 export async function submitGenerationTask(
   contents: { parts: ContentPart[] }[],
   connection: IntegrationData
@@ -261,6 +286,13 @@ export async function submitGenerationTask(
 
   const data = await response.json();
 
+  // ── Debug: log full response structure ──
+  console.log('[API] Response keys:', Object.keys(data || {}));
+  console.log('[API] Full response:', JSON.stringify(data, (k, v) => {
+    if (typeof v === 'string' && v.length > 200) return v.substring(0, 100) + '...[truncated]';
+    return v;
+  }, 2));
+
   // ── Check for error status codes ──
   if (data?.status !== 0 && data?.status !== undefined) {
     throw new Error(`API error: ${data?.message || 'Unknown error'}`);
@@ -279,36 +311,59 @@ export async function submitGenerationTask(
   // ── Case 3: Direct Gemini format { candidates: [{ content: { parts: [...] } }] } ──
   if (data?.candidates?.[0]?.content?.parts) {
     const parts = data.candidates[0].content.parts;
-    for (const part of parts) {
-      if (part.inlineData?.data) {
-        const mimeType = part.inlineData.mimeType || 'image/png';
-        const imageUrl = `data:${mimeType};base64,${part.inlineData.data}`;
-        return { taskId: '__sync__', synchronous: true, imageUrl };
-      }
+    const img = extractImageFromParts(parts);
+    if (img) {
+      return { taskId: '__sync__', synchronous: true, imageUrl: `data:${img.mimeType};base64,${img.data}` };
     }
+    // Maybe the model returned text only
+    const textParts = parts.filter((p: Record<string, unknown>) => p.text);
+    if (textParts.length > 0) {
+      const textContent = textParts.map((p: Record<string, unknown>) => p.text).join('\n');
+      throw new Error(`النموذج أرجع نصاً بدلاً من صورة: "${textContent.substring(0, 200)}"`);
+    }
+    console.error('[API] candidates found but no image in parts:', JSON.stringify(parts.map((p: Record<string, unknown>) => Object.keys(p))));
     throw new Error('لم يتم استلام بيانات الصورة من الـ API. تأكد من أن النموذج يدعم توليد الصور.');
   }
 
-  // ── Case 4: Proxy-wrapped format with result/output field ──
-  const output = data?.result || data?.output || data;
-  if (output?.imageUrl || output?.image_url || output?.url) {
-    const imageUrl = output.imageUrl || output.image_url || output.url;
-    return { taskId: '__sync__', synchronous: true, imageUrl };
+  // ── Case 3b: candidates with promptFeedback (blocked) ──
+  if (data?.candidates?.[0]?.finishReason === 'SAFETY') {
+    throw new Error('تم حظر الطلب بسبب سياسات الأمان. يرجى تعديل البرومبت.');
   }
 
-  // ── Case 5: Base64 in result/output ──
-  if (output?.image || output?.imageData || output?.image_data) {
-    const imgData = output.image || output.imageData || output.image_data;
-    if (imgData.data || imgData.base64) {
-      const raw = imgData.data || imgData.base64;
+  // ── Case 3c: candidates empty ──
+  if (data?.candidates && data.candidates.length === 0) {
+    const reason = data?.promptFeedback?.blockReason || 'غير معروف';
+    throw new Error(`لم يتم إرجاع نتائج. السبب: ${reason}`);
+  }
+
+  // ── Case 4: Proxy-wrapped format with result/output field ──
+  const output = data?.result || data?.output;
+  if (output) {
+    if (output.imageUrl || output.image_url || output.url) {
+      return { taskId: '__sync__', synchronous: true, imageUrl: output.imageUrl || output.image_url || output.url };
+    }
+    // Try extracting from output parts
+    if (output.candidates?.[0]?.content?.parts) {
+      const img = extractImageFromParts(output.candidates[0].content.parts);
+      if (img) {
+        return { taskId: '__sync__', synchronous: true, imageUrl: `data:${img.mimeType};base64,${img.data}` };
+      }
+    }
+  }
+
+  // ── Case 5: Base64 in image/imageData field ──
+  const imgData = data?.image || data?.imageData || data?.image_data;
+  if (imgData) {
+    const raw = imgData.data || imgData.base64;
+    if (raw) {
       const mime = imgData.mimeType || imgData.mime_type || 'image/png';
       return { taskId: '__sync__', synchronous: true, imageUrl: `data:${mime};base64,${raw}` };
     }
   }
 
   // ── Fallback: dump response for debugging ──
-  console.error('Unexpected API response format:', JSON.stringify(data, null, 2));
-  throw new Error(`صيغة استجابة الـ API غير متوقعة. تحقق من إعدادات الاتصال.`);
+  console.error('[API] Unexpected response format:', JSON.stringify(data, null, 2));
+  throw new Error(`صيغة استجابة الـ API غير متوقعة. تحقق من إعدادات الاتصال. راجع Console للتفاصيل.`);
 }
 
 // ── Query task status via direct Gateway call ────────────────────
