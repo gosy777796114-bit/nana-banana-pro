@@ -259,6 +259,13 @@ function extractImageFromParts(parts: Array<Record<string, unknown>>): { mimeTyp
       const img = part.image as Record<string, string>;
       return { mimeType: img.mimeType || img.mime_type || 'image/png', data: String(img.data || img.base64) };
     }
+    // Case E: Markdown image — ![image](data:image/jpeg;base64,...)
+    if (part.text && typeof part.text === 'string') {
+      const mdMatch = part.text.match(/!\[.*?\]\(data:([^;]+);base64,([A-Za-z0-9+/=\s]+)\)/);
+      if (mdMatch) {
+        return { mimeType: mdMatch[1], data: mdMatch[2].replace(/\s/g, '') };
+      }
+    }
   }
   return null;
 }
