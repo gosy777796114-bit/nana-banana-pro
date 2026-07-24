@@ -104,8 +104,8 @@ export default function IntegrationDataTab() {
   };
 
   const handleShare = () => {
-    const url = window.location.href;
-    navigator.clipboard.writeText(url).then(() => {
+    const shareUrl = 'https://nana-banana-pro.vercel.app';
+    navigator.clipboard.writeText(shareUrl).then(() => {
       toast.success('تم نسخ رابط التطبيق');
     });
   };

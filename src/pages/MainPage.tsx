@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Sparkles, Zap, Layers, Maximize2, Settings } from 'lucide-react';
+import { Sparkles, Zap, Layers, Maximize2, Settings, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
@@ -11,6 +11,7 @@ import GenerationProgressBar from '@/components/GenerationProgressBar';
 import ResultSection from '@/components/ResultSection';
 import FabricZoomTab from '@/pages/FabricZoomTab';
 import IntegrationDataTab from '@/components/IntegrationDataTab';
+import ConnectionSwitcher from '@/components/ConnectionSwitcher';
 import { useIntegration } from '@/contexts/IntegrationContext';
 
 import type {
@@ -412,11 +413,27 @@ export default function MainPage() {
             <div className="w-9 h-9 rounded-xl bg-primary/20 border border-primary/40 flex items-center justify-center glow-primary-sm shrink-0">
               <Sparkles className="w-4 h-4 text-primary" />
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <h1 className="text-base md:text-lg font-extrabold gradient-text font-arabic leading-tight">
                 تطبيق نانه وبنانه برو
               </h1>
               <p className="text-xs text-muted-foreground font-arabic">ابو القيس — توليد الصور بالذكاء الاصطناعي</p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <ConnectionSwitcher />
+              <Button
+                variant="outline"
+                size="sm"
+                className="font-arabic text-xs gap-1 hidden sm:flex"
+                onClick={() => {
+                  const shareUrl = 'https://nana-banana-pro.vercel.app';
+                  navigator.clipboard.writeText(shareUrl).then(() => {
+                    toast.success('تم نسخ رابط التطبيق');
+                  });
+                }}
+              >
+                <Share2 className="w-3 h-3" /> مشاركة
+              </Button>
             </div>
           </div>
           {/* Tab switcher */}
