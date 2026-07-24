@@ -1,0 +1,529 @@
+================================================================================
+                    تقرير تحليل شامل لمشروع "تطبيق نانه وبنانه برو"
+                    تاريخ الإعداد: 24 يوليو 2026
+================================================================================
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+أولاً: بنية المشروع الكاملة
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+J:\Nana_and_Banana_Pro_تطبيق_نانه_وبنانه_برو\
+│
+├── [ملفات الجذر]
+│   ├── .env                          → متغيرات البيئة (Supabase URL + Key + App ID)
+│   ├── .gitignore                    → قواعد تجاهل Git
+│   ├── biome.json                    → إعدادات Linter (Biome)
+│   ├── components.json               → إعدادات shadcn/ui (New York style)
+│   ├── postcss.config.js             → إعدادات PostCSS
+│   ├── tailwind.config.js            → إعدادات Tailwind CSS
+│   ├── pnpm-workspace.yaml           → إعدادات workspace
+│   ├── package.json                  → الاعتماديات والسكربتات (type: "module")
+│   ├── package-lock.json             → قفل الاعتماديات
+│   ├── tsconfig.json                 → TypeScript config الرئيسي
+│   ├── tsconfig.app.json             → TypeScript config للتطبيق
+│   ├── tsconfig.check.json           → TypeScript config للفحص
+│   ├── tsconfig.node.json            → TypeScript config لـ Node
+│   ├── vite.config.ts                → إعدادات Vite (base: './' مُضاف مسبقاً)
+│   ├── index.html                    → صفحة الدخول HTML
+│   ├── icon.ico                      → أيقونة التطبيق
+│   ├── icon.jpg.jpg                  → أيقونة بديلة
+│   ├── main.py                       → Python Desktop launcher (pywebview)
+│   ├── requirements.txt              → متطلبات Python (pywebview)
+│   ├── app_data.json                 → بيانات البرومبتات المحفوظة
+│   ├── historical_context.txt        → سجل جلسة التطوير
+│   ├── sgconfig.yml                  → إعدادات Skills Rules
+│   ├── convert_icon.py               → سكربت تحويل الأيقونات
+│   ├── create_shortcut.py            → سكربت إنشاء اختصار
+│   ├── create_shortcut.ps1           → سكربت PowerShell
+│   ├── تشغ_التطبيق.bat               → ملف تشغيل Windows
+│   └── تطبيق نانه وبنانه برو.lnk     → اختصار التطبيق
+│
+├── [مجلدات التكوين]
+│   ├── .rules/                       → قواعد Codex AI (10 ملفات)
+│   ├── .skills/                      → مهارات Codex AI (30+ مجلد)
+│   ├── .sync/                        → ملفات مزامنة
+│   ├── docs/                         → وثائق (prd.md)
+│   ├── tasks/                        → مهام التطوير
+│   ├── history/                      → إعدادات السجل
+│   └── supabase/                     → ملفات Supabase Backend
+│       ├── migrations/               → SQL migrations
+│       └── functions/                → Edge Functions (Deno)
+│           ├── image-generation-submit/index.ts
+│           └── image-generation-query/index.ts
+│
+├── electron/                         → ملفات Electron
+│   ├── main.cjs                      → العملية الرئيسية
+│   └── preload.cjs                   → السكربت المبدئي
+│
+├── public/                           → الأصول الثابتة
+│   ├── favicon.png
+│   └── images/
+│       ├── favicon.ico
+│       ├── error/                    → صور أخطاء (404, 500, 503)
+│       ├── logo/                     → شعارات
+│       └── shape/                    → زخارف
+│
+├── dist/                             → ملفات البناء (مُنشأة)
+│   ├── index.html
+│   ├── favicon.png
+│   ├── assets/ (JS + CSS)
+│   └── images/
+│
+└── src/                              → المجلد الرئيسي للمصدر
+    ├── main.tsx                      → نقطة الدخول الرئيسية
+    ├── App.tsx                       → المكون الرئيسي + التوجيه (HashRouter)
+    ├── routes.tsx                    → تعريف مسارات التوجيه (مسار واحد: /)
+    ├── index.css                     → الأنماط العامة + نظام التصميم
+    ├── vite-env.d.ts                 → تعريف أنواع Vite
+    ├── svg.d.ts                      → تعريف أنواع SVG
+    ├── global.d.ts                   → تعريفات عامة
+    │
+    ├── db/
+    │   └── supabase.ts              → إعداد عميل Supabase
+    │
+    ├── contexts/
+    │   └── AuthContext.tsx           → سياق المصادقة
+    │
+    ├── types/
+    │   ├── types.ts                  → أنواع البيانات الرئيسية
+    │   └── index.ts                  → أنواع Options
+    │
+    ├── lib/
+    │   └── utils.ts                  → أدوات مساعدة (cn, createQueryString, formatDate)
+    │
+    ├── hooks/
+    │   ├── use-debounce.ts           → Debounce
+    │   ├── use-go-back.ts            → التنقل للخلف
+    │   ├── use-mobile.tsx            → كشف الشاشات الصغيرة
+    │   └── use-supabase-upload.ts    → رفع الملفات لـ Supabase Storage
+    │
+    ├── services/
+    │   ├── imageGeneration.ts        → خدمة توليد الصور (270 سطر)
+    │   └── promptStorage.ts          → خدمة حفظ البرومبتات (104 سطر)
+    │
+    ├── pages/
+    │   ├── MainPage.tsx              → الصفحة الرئيسية (489 سطر)
+    │   ├── FabricZoomTab.tsx         → تبويب زوم الأقمشة (1011 سطر)
+    │   ├── NotFound.tsx              → صفحة 404 (40 سطر)
+    │   └── SamplePage.tsx            → صفحة تجريبية (16 سطر)
+    │
+    └── components/
+        ├── DiagnosticsPanel.tsx       → لوحة الكشف عن المشاكل (203 سطر)
+        ├── ReferenceImageUpload.tsx   → رفع الصور المرجعية (230 سطر)
+        ├── PromptInput.tsx            → إدخال البرومبت + المحفوظات (350 سطر)
+        ├── ImageSettingsPanel.tsx     → إعدادات الأبعاد والجودة (173 سطر)
+        ├── GenerationProgressBar.tsx  → شريط التقدم (71 سطر)
+        ├── ResultSection.tsx          → قسم النتيجة (187 سطر)
+        ├── dropzone.tsx               → مكون Dropzone (227 سطر)
+        ├── common/
+        │   ├── PageMeta.tsx           → Helmet + TooltipProvider
+        │   ├── RouteGuard.tsx         → حارس التوجيه
+        │   └── IntersectObserver.tsx  → مراقب التقاطعات
+        └── ui/                        → مكونات shadcn/ui (40+ ملف)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ثانياً: جميع الميزات والوظائف الحالية (صفحة بصفحة)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+【الصفحة الرئيسية — MainPage.tsx】
+├── تبويبان رئيسيان:
+│   ├── تبويب "توليد الصور" (generate)
+│   │   ├── لوحة الكشف عن المشاكل (DiagnosticsPanel)
+│   │   │   ├── حالة الاتصال (online/offline/unknown)
+│   │   │   ├── عدد الصور المرجعية
+│   │   │   ├── عدد أحرف البرومبت
+│   │   │   ├── الأبعاد والجودة المحددة
+│   │   │   ├── محاولة التوليد الحالية
+│   │   │   ├── التحذيرات
+│   │   │   ├── آخر خطأ مع التفاصيل
+│   │   │   └── سجل النظام (50 سجل آخر)
+│   │   ├── رفع الصور المرجعية (ReferenceImageUpload)
+│   │   │   ├── سحب وإفلات أو اختيار ملف
+│   │   │   ├── ضغط Canvas تلقائي (JPEG, 512px, 350KB حد أقصى)
+│   │   │   ├── مسار مزدوج للملفات الكبيرة (>50MB → createImageBitmap)
+│   │   │   ├── تحويل base64 للصور
+│   │   │   └── فحص حجم الطلب الكلي (حد 4MB)
+│   │   ├── إدخال البرومبت (PromptInput)
+│   │   │   ├── حقل نصي مع عدّاد أحرف (حد 10,000)
+│   │   │   ├── حفظ البرومبتات في localStorage + pywebview
+│   │   │   ├── تحميل وتعديل وحذف المحفوظات
+│   │   │   └── اختيار محفوظات سريعة
+│   │   ├── إعدادات الصورة (ImageSettingsPanel)
+│   │   │   ├── 7 خيارات أبعاد (مربع، أفقي، عمودي، بانورامي، مخصص)
+│   │   │   ├── 4 مستويات جودة (2K, 4K, 8K, 16K)
+│   │   │   └── إدخال مخصص للأبعاد
+│   │   ├── زر "توليد الصورة"
+│   │   │   ├── بناء محتويات الطلب (صور + نص محسّن بالأبعاد)
+│   │   │   ├── إرسال عبر Supabase Edge Function
+│   │   │   ├── الاستعلام الدوري كل 7 ثوانٍ (حد 10 دقائق)
+│   │   │   ├── شريط تقدم ديناميكي
+│   │   │   └── كشف الأبعاد الفعلية بعد التوليد
+│   │   └── قسم النتيجة (ResultSection)
+│   │       ├── عرض الصورة الناتجة
+│   │       ├── الأبعاد الفعلية vs المطلوبة
+│   │       ├── وقت التوليد
+│   │       ├── إعادة التوليد
+│   │       └── بدء من جديد
+│   │
+│   └── تبويب "زوم الأقمشة" (FabricZoomTab)
+│       ├── رفع 1-8 صور (أي حجم)
+│       ├── تحديد الصورة الرئيسية
+│       ├── زووم تلقائي لكل صورة (10-3000%)
+│       ├── تحديد منطقة الزووم اليدوي (Crop Picker)
+│       │   └── رسم مستطيل بالسحب على الصورة
+│       ├── 6 تخطيطات للصورة المركبة
+│       │   ├── الكبيرة أعلى + شريط أسفل
+│       │   ├── الكبيرة يسار + الصور يمين
+│       │   ├── الكبيرة يمين + الصور يسار
+│       │   ├── الكبيرة في المنتصف + حولها
+│       │   ├── شبكة (Grid)
+│       │   └── هرمي (Pyramid)
+│       ├── بناء Canvas محلي (بدون AI)
+│       ├── صيانة RAM (حد 32 مليون بكسل)
+│       ├── تصدير PNG
+│       ├── تحميل عبر pywebview أو المتصفح
+│       ├── سجل التطوير
+│       ├── كاشف الأخطاء
+│       └── برومبت نصي
+│
+└── الصفحة الرئيسية تحتوي على شريط عنوان ثابت (sticky header)
+    ├── شعار التطبيق + اسمه
+    ├── "ابو القيس — توليد الصور بالذكاء الاصطناعي"
+    └── أزرار التبديل بين التبويبين
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ثالثاً: جميع نقاط الاتصال بالـ APIs (Hardcoded URLs, Keys, Endpoints)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚠️ تنبيه: يوجد اتصالات ثابتة (Hardcoded) في كود الـ Backend وFrontend:
+
+1. Supabase Frontend Client — src/db/supabase.ts
+   ├── URL: import.meta.env.VITE_SUPABASE_URL
+   └── Key: import.meta.env.VITE_SUPABASE_ANON_KEY
+
+2. Supabase Edge Function — "image-generation-submit"
+   ├── الاستدعاء: supabase.functions.invoke('image-generation-submit', ...)
+   ├── الوجهة الثابتة في Edge Function:
+   │   URL: https://app-cd2ufz8vv669-api-zYkZzKQJrBdL.gateway.appmedo.com/image-generation/submit
+   └── الهيدر: X-Gateway-Authorization: Bearer ${INTEGRATIONS_API_KEY}
+
+3. Supabase Edge Function — "image-generation-query"
+   ├── الاستدعاء: supabase.functions.invoke('image-generation-query', ...)
+   ├── الوجهة الثابتة في Edge Function:
+   │   URL: https://app-cd2ufz8vv669-api-GYX1lzGw0DQa.gateway.appmedo.com/image-generation/task
+   └── الهيدر: X-Gateway-Authorization: Bearer ${INTEGRATIONS_API_KEY}
+
+4. مفاتيح في ملف .env:
+   ├── VITE_SUPABASE_URL=https://ptcmknuhpgohccmqjamn.supabase.co
+   ├── VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+   └── VITE_APP_ID=app-cd2ufz8vv669
+
+5. مفاتيح Supabase Edge Functions (Server-side فقط):
+   ├── INTEGRATIONS_API_KEY (Secret في Supabase)
+   ├── SUPABASE_URL (تلقائي)
+   └── SUPABASE_SERVICE_ROLE_KEY (Secret في Supabase)
+
+6. Sentry (اختياري):
+   └── VITE_SENTRY_DSN (غير موجود في .env الحالي)
+
+7. Google Fonts:
+   └── https://fonts.googleapis.com/css2?family=Cairo&family=Tajawal
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+رابعاً: المكتبات (Dependencies) المستخدمة وإصداراتها
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+【المكتبات الأساسية - Dependencies】
+├── react: ^18.0.0
+├── react-dom: ^18.0.0
+├── react-router: ^7.9.5
+├── react-router-dom: ^7.9.5
+├── @supabase/supabase-js: 2.103.1
+├── @sentry/react: ^9.47.1
+├── axios: ^1.13.1
+├── ky: ^1.13.0
+├── zod: ^3.25.76
+├── react-hook-form: ^7.66.0
+├── @hookform/resolvers: ^5.2.2
+├── motion: ^12.23.25
+├── sonner: ^2.0.7
+├── next-themes: ^0.4.6
+├── date-fns: ^3.6.0
+├── qrcode: ^1.5.4
+├── streamdown: ^1.4.0
+├── eventsource-parser: ^3.0.6
+└── video-react: ^0.16.0
+
+【مكتبات Radix UI (shadcn/ui)】
+├── @radix-ui/react-accordion: ^1.2.12
+├── @radix-ui/react-alert-dialog: ^1.1.15
+├── @radix-ui/react-aspect-ratio: ^1.1.7
+├── @radix-ui/react-avatar: ^1.1.10
+├── @radix-ui/react-checkbox: ^1.3.3
+├── @radix-ui/react-collapsible: ^1.1.12
+├── @radix-ui/react-context-menu: ^2.2.16
+├── @radix-ui/react-dialog: ^1.1.15
+├── @radix-ui/react-dropdown-menu: ^2.1.16
+├── @radix-ui/react-hover-card: ^1.1.15
+├── @radix-ui/react-icons: ^1.3.2
+├── @radix-ui/react-label: ^2.1.7
+├── @radix-ui/react-menubar: ^1.1.16
+├── @radix-ui/react-navigation-menu: ^1.2.14
+├── @radix-ui/react-popover: ^1.1.15
+├── @radix-ui/react-progress: ^1.1.7
+├── @radix-ui/react-radio-group: ^1.3.8
+├── @radix-ui/react-scroll-area: ^1.2.10
+├── @radix-ui/react-select: ^2.2.6
+├── @radix-ui/react-separator: ^1.1.7
+├── @radix-ui/react-slider: ^1.3.6
+├── @radix-ui/react-slot: ^1.2.3
+├── @radix-ui/react-switch: ^1.2.6
+├── @radix-ui/react-tabs: ^1.1.13
+├── @radix-ui/react-toast: ^1.2.15
+├── @radix-ui/react-toggle: ^1.1.10
+├── @radix-ui/react-toggle-group: ^1.1.11
+└── @radix-ui/react-tooltip: ^1.2.8
+
+【مكتبات UI و Styling】
+├── class-variance-authority: ^0.7.1
+├── clsx: ^2.1.1
+├── tailwind-merge: ^3.3.1
+├── tailwindcss-animate: ^1.0.7
+├── tailwindcss-intersect: ^2.2.0
+├── lucide-react: ^0.576.0
+├── cmdk: ^1.1.1
+├── embla-carousel-react: ^8.6.0
+├── input-otp: ^1.4.2
+├── react-day-picker: ^9.13.0
+├── react-dropzone: ^14.3.8
+├── react-helmet-async: ^2.0.5
+├── react-resizable-panels: ^2.1.8
+└── vaul: ^1.1.2
+
+【مكتبات أخرى】
+├── miaoda-react-devkit: 0.1.1-beta.14
+├── miaoda-sc-plugin: 1.0.62
+└── recharts: 2.15.4
+
+【أدوات التطوير - DevDependencies】
+├── @biomejs/biome: 2.4.5
+├── @tailwindcss/container-queries: ^0.1.1
+├── @typescript/native-preview: 7.0.0-dev.20260514.1
+├── @vitejs/plugin-react: ^5.1.4
+├── autoprefixer: ^10.4.27
+├── concurrently: ^8.2.2
+├── cross-env: ^10.1.0
+├── electron: ^26.4.3
+├── electron-builder: ^24.8.0
+├── postcss: ^8.5.6
+├── tailwindcss: ^3.4.11
+├── typescript: ~5.9.3
+├── vite: npm:rolldown-vite@latest
+├── vite-plugin-svgr: ^4.5.0
+└── wait-on: ^9.0.10
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+خامساً: نظام التوجيه (Router)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ نوع التوجيه: HashRouter (react-router-dom)
+✅ الملف: src/App.tsx
+✅ المسارات المعرفة في src/routes.tsx:
+
+| المسار | المكون | الوصول |
+|--------|--------|--------|
+| / | MainPage | عام (public: true) |
+| * | Navigate to / | إعادة توجيه لأي مسار غير معروف |
+
+⚠️ ملاحظة: المسار الوحيد هو الصفحة الرئيسية MainPage التي تحتوي تبويبين داخليين (توليد الصور + زوم الأقمشة).
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+سادساً: استخدامات localStorage / sessionStorage / Web Workers / Canvas / fetch / axios
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+【localStorage】
+├── المفتاح: nano_banana_saved_prompts
+├── الملف: src/services/promptStorage.ts
+├── المحتوى: مصفوفة SavedPrompt[] (id, name, text, createdAt, updatedAt)
+├── الاستخدام: حفظ وتحميل وتعديل وحذف البرومبتات
+└── الدعم المزدوج: localStorage + pywebview API (app_data.json)
+
+【sessionStorage】
+└── لا يوجد استخدام في المشروع
+
+【Web Workers】
+└── لا يوجد استخدام في المشروع
+
+【Canvas API — استخدام مكثف】
+├── src/services/imageGeneration.ts
+│   ├── compressAndEncode(): ضغط الصور عبر Canvas → JPEG
+│   ├── compressHeavyFile(): للملفات >50MB عبر createImageBitmap
+│   └── إعدادات: imageSmoothingQuality='high', JPEG_QUALITY=0.80
+│
+└── src/pages/FabricZoomTab.tsx
+    ├── buildComposite(): بناء صورة مركبة عبر Canvas
+    ├── drawPanel(): رسم إطارات على Canvas
+    ├── safeCanvasDims(): حماية الذاكرة (حد 32 مليون بكسل)
+    └── إعدادات: imageSmoothingQuality='high', تصدير PNG
+
+【createImageBitmap — للم файлات الكبيرة】
+├── src/services/imageGeneration.ts → HEAVY_FILE_THRESHOLD = 50MB
+└── src/pages/FabricZoomTab.tsx → HEAVY_FILE_THRESHOLD = 50MB
+
+【fetch / axios】
+├── Supabase Client (يستخدم fetch داخلياً):
+│   └── supabase.functions.invoke() × 2 (submit + query)
+│
+├── Edge Functions (Deno runtime):
+│   ├── image-generation-submit → fetch to gateway.appmedo.com
+│   └── image-generation-query → fetch to gateway.appmedo.com
+│
+├── Sentry (يستخدم fetch داخلياً):
+│   └── Sentry.init() مع VITE_SENTRY_DSN
+│
+└── مكتبة axios مُثبّتة في package.json لكن لا تُستخدم في كود المصدر الحالي
+    └── مكتبة ky مُثبّتة لكن لا تُستخدم أيضاً
+
+【Supabase Storage】
+├── Bucket: generated-media (عام للقراءة)
+├── الاستخدام: رفع الصور المولّدة من Edge Functions
+└── الم Migration: supabase/migrations/00001_create_storage_bucket.sql
+
+【pywebview API】
+├── الملف: main.py
+├── الدوال المتاحة:
+│   ├── download_image(data_url, filename)
+│   ├── save_data(key, value)
+│   └── load_data(key)
+└── الاستخدام في:
+    ├── src/services/promptStorage.ts (حفظ/تحميل البرومبتات)
+    └── src/pages/FabricZoomTab.tsx (تحميل الصور)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+سابعاً: نظام البناء وإعدادات الـ Config
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+【نوع نظام البناء】
+✅ Vite (rolldown-vite@latest) — NOT Webpack
+
+【ملفات الإعداد الرئيسية】
+
+vite.config.ts:
+├── base: './' (تم إضافته مسبقاً — مهم لـ Electron)
+├── plugins: react(), svgr()
+├── alias: @ → ./src
+
+package.json:
+├── "type": "module" ⚠️ مهم لصيغة ملفات Electron
+├── "main": "electron/main.cjs"
+├── "scripts":
+│   ├── dev: vite
+│   ├── build:web: vite build
+│   ├── preview: vite preview
+│   ├── electron:dev: concurrently + wait-on + electron
+│   ├── electron:preview: npm run build:web && electron .
+│   ├── electron:build: npm run build:web && electron-builder
+│   └── lint: tsgo + biome + check.sh + tailwindcss + testBuild.sh
+├── "build" (electron-builder config):
+│   ├── productName: "تطبيق نانه وبنانه برو"
+│   ├── appId: "com.nana.banana.pro"
+│   ├── icon: "public/favicon.png"
+│   ├── directories.output: "release"
+│   ├── files: ["dist/**/*", "electron/**/*", "package.json", "public/**/*"]
+│   └── win: { target: ["nsis", "portable"] }
+
+tsconfig.json:
+├── target: ES2020
+├── module: ESNext
+├── baseUrl: .
+└── paths: @/* → ./src/*
+
+tailwind.config.js:
+├── darkMode: ['class']
+├── plugins: tailwindcss-animate, container-queries, intersect
+└── مخصص: border utilities
+
+biome.json:
+├── VCS: git enabled
+├── Linter: correctness.noUndeclaredDependencies, suspicious.noRedeclare
+└── Formatter: disabled
+
+components.json (shadcn/ui):
+├── style: new-york
+├── tailwind.cssVariables: true
+└── iconLibrary: lucide
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ثامناً: حالة ملفات Electron الحالية
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+electron/main.cjs:
+├── ✅ الامتداد .cjs (متوافق مع "type": "module")
+├── ✅ contextIsolation: true
+├── ✅ nodeIntegration: false
+├── ✅ sandbox: false
+├── ✅ الدعم المزدوج: dev (localhost:5173) + production (loadFile)
+├── ✅ المسار: path.join(__dirname, '../dist/index.html')
+├── ⚠️ لا يوجد تحميل أيقونة مخصصة (icon)
+├── ⚠️ لا يوجد دعم لـ deep linking أو file protocol
+
+electron/preload.cjs:
+├── ✅ الامتداد .cjs
+├── ✅ contextBridge.exposeInMainWorld
+├── ⚠️ يعرض فقط: platform, versions (وظائف محدودة)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+تاسعاً: ملخص تقني سريع
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+| البند | التفاصيل |
+|-------|---------|
+| نوع المشروع | تطبيق ويب عربي + Electron + pywebview (3 منصات) |
+| التقنيات | React 18, TypeScript 5.9, Vite (rolldown), Tailwind CSS 3.4 |
+| قاعدة البيانات | Supabase (PostgreSQL + Storage + Edge Functions) |
+| واجهة المستخدم | shadcn/ui (New York style) + Lucide icons |
+| المصادقة | Supabase Auth + AuthContext |
+| التوجيه | SPA مع HashRouter — مسار واحد (/) |
+| الاتجاه | RTL (من اليمين لليسار) |
+| الخطوط | Cairo + Tajawal (Google Fonts) |
+| الألوان | Dark theme أساسي (violet/purple primary) |
+| الميزات الرئيسية | توليد صور AI + زوم أقمشة محلي + إدارة برومبتات |
+| الملفات المخصصة | ~20 ملف في src/ |
+| مكونات UI | 40+ مكون shadcn/ui |
+| الملف الأكبر | FabricZoomTab.tsx (1011 سطر) |
+| الـ APIs | Supabase Edge Functions → gateway.appmedo.com |
+| الحالة الحالية | Electron مُضاف مسبقاً لكن يحتاج تحسين + لم يُ اختبر |
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+عاصراً: الملاحظات الحرجة لمرحلة "بيانات التكامل" القادمة
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. الاتصالات الحالية ثابتة (Hardcoded) في:
+   ├── .env (Supabase URL + Key + App ID)
+   ├── supabase/functions/image-generation-submit/index.ts (Gateway URLs)
+   └── supabase/functions/image-generation-query/index.ts (Gateway URLs)
+
+2. الـ Gateway URLs تحتوي أجزاء مختلفة لكل وظيفة:
+   ├── Submit: app-cd2ufz8vv669-api-zYkZzKQJrBdL.gateway.appmedo.com
+   └── Query:  app-cd2ufz8vv669-api-GYX1lzGw0DQa.gateway.appmedo.com
+
+3. الهيدر المستخدم: X-Gateway-Authorization: Bearer ${INTEGRATIONS_API_KEY}
+
+4. الـ App ID: app-cd2ufz8vv669
+
+5. للتحويل إلى نظام اتصالات ديناميكي (مرحلة 2)، يجب:
+   ├── نقل كل الـ URLs والمفاتيح إلى state مخزن في Appwrite
+   ├── جعل Edge Functions تقرأ من متغيرات ديناميكية بدلاً من Secrets
+   ├── أو: جعل Frontend يستدعي الـ APIs مباشرة (بديل عن Edge Functions)
+   └── هذا يتطلب مراجعة شاملة لتدفق البيانات
+
+================================================================================
+                          نهاية التقرير
+================================================================================
