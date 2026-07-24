@@ -241,7 +241,7 @@ export interface ContentPart {
 export async function submitGenerationTask(
   contents: { parts: ContentPart[] }[],
   connection: IntegrationData
-): Promise<{ taskId: string; estimatedTime?: number }> {
+): Promise<{ taskId: string; estimatedTime?: number; synchronous?: boolean; imageUrl?: string }> {
   const url = connection.submitUrl || connection.genKey;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (connection.headerKey && connection.headerValue) {
@@ -260,10 +260,55 @@ export async function submitGenerationTask(
   }
 
   const data = await response.json();
+
+  // ── Check for error status codes ──
   if (data?.status !== 0 && data?.status !== undefined) {
     throw new Error(`API error: ${data?.message || 'Unknown error'}`);
   }
-  return data.data;
+
+  // ── Case 1: Wrapped format { data: { taskId, estimatedTime } } ──
+  if (data?.data?.taskId) {
+    return { taskId: data.data.taskId, estimatedTime: data.data.estimatedTime };
+  }
+
+  // ── Case 2: Async operation format { name: "operations/..." } ──
+  if (data?.name && data.name.startsWith('operations/')) {
+    return { taskId: data.name, estimatedTime: 90 };
+  }
+
+  // ── Case 3: Direct Gemini format { candidates: [{ content: { parts: [...] } }] } ──
+  if (data?.candidates?.[0]?.content?.parts) {
+    const parts = data.candidates[0].content.parts;
+    for (const part of parts) {
+      if (part.inlineData?.data) {
+        const mimeType = part.inlineData.mimeType || 'image/png';
+        const imageUrl = `data:${mimeType};base64,${part.inlineData.data}`;
+        return { taskId: '__sync__', synchronous: true, imageUrl };
+      }
+    }
+    throw new Error('لم يتم استلام بيانات الصورة من الـ API. تأكد من أن النموذج يدعم توليد الصور.');
+  }
+
+  // ── Case 4: Proxy-wrapped format with result/output field ──
+  const output = data?.result || data?.output || data;
+  if (output?.imageUrl || output?.image_url || output?.url) {
+    const imageUrl = output.imageUrl || output.image_url || output.url;
+    return { taskId: '__sync__', synchronous: true, imageUrl };
+  }
+
+  // ── Case 5: Base64 in result/output ──
+  if (output?.image || output?.imageData || output?.image_data) {
+    const imgData = output.image || output.imageData || output.image_data;
+    if (imgData.data || imgData.base64) {
+      const raw = imgData.data || imgData.base64;
+      const mime = imgData.mimeType || imgData.mime_type || 'image/png';
+      return { taskId: '__sync__', synchronous: true, imageUrl: `data:${mime};base64,${raw}` };
+    }
+  }
+
+  // ── Fallback: dump response for debugging ──
+  console.error('Unexpected API response format:', JSON.stringify(data, null, 2));
+  throw new Error(`صيغة استجابة الـ API غير متوقعة. تحقق من إعدادات الاتصال.`);
 }
 
 // ── Query task status via direct Gateway call ────────────────────
@@ -278,6 +323,11 @@ export async function queryGenerationTask(
   taskId: string,
   connection: IntegrationData
 ): Promise<QueryResult> {
+  // ── Synchronous result: no polling needed ──
+  if (taskId === '__sync__') {
+    throw new Error('Synchronous result handled by submit caller');
+  }
+
   const url = connection.queryUrl || connection.visionKey;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (connection.headerKey && connection.headerValue) {
@@ -296,5 +346,47 @@ export async function queryGenerationTask(
   }
 
   const data = await response.json();
-  return data.data;
+
+  // ── Case 1: Wrapped format ──
+  if (data?.data) {
+    const d = data.data;
+    if (d.status === 'SUCCESS' || d.status === 'success' || d.status === 0) {
+      return { taskId, status: 'SUCCESS', imageUrl: d.imageUrl || d.image_url || d.url };
+    }
+    if (d.status === 'FAILED' || d.status === 'failed' || d.status === 2) {
+      return { taskId, status: 'FAILED', error: d.error };
+    }
+    return { taskId, status: 'PENDING' };
+  }
+
+  // ── Case 2: Direct Gemini format ──
+  if (data?.candidates?.[0]?.content?.parts) {
+    const parts = data.candidates[0].content.parts;
+    for (const part of parts) {
+      if (part.inlineData?.data) {
+        const mimeType = part.inlineData.mimeType || 'image/png';
+        return { taskId, status: 'SUCCESS', imageUrl: `data:${mimeType};base64,${part.inlineData.data}` };
+      }
+    }
+    return { taskId, status: 'FAILED', error: { code: 'NO_IMAGE', message: 'No image data in response' } };
+  }
+
+  // ── Case 3: Operation still pending ──
+  if (data?.done === false || data?.status === 'PENDING' || data?.status === 'pending') {
+    return { taskId, status: 'PENDING' };
+  }
+
+  // ── Case 4: Operation complete ──
+  if (data?.done === true) {
+    const result = data.result || data.response || data;
+    const imageUrl = result?.imageUrl || result?.image_url || result?.url;
+    if (imageUrl) {
+      return { taskId, status: 'SUCCESS', imageUrl };
+    }
+    return { taskId, status: 'FAILED', error: { code: 'NO_IMAGE', message: 'Operation complete but no image URL' } };
+  }
+
+  // ── Fallback ──
+  console.error('Unexpected query response format:', JSON.stringify(data, null, 2));
+  return { taskId, status: 'PENDING' };
 }

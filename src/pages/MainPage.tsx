@@ -230,7 +230,32 @@ export default function MainPage() {
 
       // Submit task
       addLog('info', 'جاري إرسال طلب التوليد إلى الخادم...');
-      const { taskId, estimatedTime } = await submitGenerationTask(contents, activeConnection);
+      const { taskId, estimatedTime, synchronous, imageUrl: syncImageUrl } = await submitGenerationTask(contents, activeConnection);
+
+      // ── Synchronous result: image returned directly ──
+      if (synchronous && syncImageUrl) {
+        stopTimer();
+        setProgressPercent(100);
+        setGenStatus('success');
+        setDiagnostics(prev => ({ ...prev, apiStatus: 'online' }));
+
+        const totalMs = Date.now() - startTimeRef.current;
+        const { width: w, height: h } = resolveDimensions(settings);
+        const qualityLabel = QUALITY_OPTIONS.find(q => q.value === settings.quality)?.label ?? settings.quality;
+
+        setResult({
+          imageUrl: syncImageUrl,
+          width: w,
+          height: h,
+          quality: qualityLabel,
+          generationTimeMs: totalMs,
+        });
+
+        addLog('success', `اكتمل التوليد في ${formatDurationArabic(totalMs)} (استجابة مباشرة)`);
+        toast.success('تم توليد الصورة بنجاح!');
+        return;
+      }
+
       const estimatedMs = (estimatedTime ?? AVG_GENERATION_SEC) * 1000;
 
       setDiagnostics(prev => ({ ...prev, apiStatus: 'online' }));
